@@ -36,6 +36,7 @@ class _MyCallScreenWidget extends State<CallScreenWidget>
   bool _mirror = true;
   Originator? _holdOriginator;
   bool _callConfirmed = false;
+  bool _earlyMediaRequested = false;
   CallStateEnum _state = CallStateEnum.NONE;
 
   late String _transferTarget;
@@ -141,7 +142,10 @@ class _MyCallScreenWidget extends State<CallScreenWidget>
       case CallStateEnum.PROGRESS:
       case CallStateEnum.ACCEPTED:
       case CallStateEnum.CONFIRMED:
-        setState(() => _callConfirmed = true);
+        setState(() {
+          _callConfirmed = true;
+          _earlyMediaRequested = true;
+        });
         break;
       case CallStateEnum.HOLD:
       case CallStateEnum.UNHOLD:
@@ -251,6 +255,46 @@ class _MyCallScreenWidget extends State<CallScreenWidget>
 
     call!.answer(helper!.buildCallOptions(!remoteHasVideo),
         mediaStream: mediaStream);
+    if (mounted) {
+      setState(() {
+        _earlyMediaRequested = true;
+      });
+    } else {
+      _earlyMediaRequested = true;
+    }
+  }
+
+  Future<void> _handleEarlyMedia() async {
+    if (_earlyMediaRequested || helper == null || call == null) {
+      return;
+    }
+    final bool remoteHasVideo = call!.remote_has_video;
+    final Map<String, dynamic> options =
+        helper!.buildCallOptions(!remoteHasVideo);
+    options['status_code'] ??= 183;
+    options['mediaConstraints'] = <String, dynamic>{
+      'audio': false,
+      'video': false,
+    };
+
+    try {
+      await call!.startEarlyMedia(options);
+      if (!mounted) {
+        _earlyMediaRequested = true;
+        return;
+      }
+      setState(() {
+        _earlyMediaRequested = true;
+      });
+    } catch (error, stack) {
+      debugPrint('Failed to start early media: $error\n$stack');
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to start preview: $error')),
+      );
+    }
   }
 
   void _switchCamera() {
@@ -424,6 +468,12 @@ class _MyCallScreenWidget extends State<CallScreenWidget>
       case CallStateEnum.NONE:
       case CallStateEnum.CONNECTING:
         if (direction == Direction.incoming) {
+          advanceActions.add(ActionButton(
+            title: _earlyMediaRequested ? 'previewing' : 'preview',
+            icon: Icons.visibility,
+            checked: _earlyMediaRequested,
+            onPressed: _earlyMediaRequested ? null : () => _handleEarlyMedia(),
+          ));
           basicActions.add(ActionButton(
             title: "Accept",
             fillColor: Colors.green,

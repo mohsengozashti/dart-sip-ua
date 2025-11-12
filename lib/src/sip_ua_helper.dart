@@ -558,6 +558,16 @@ class Call {
     _session.answer(options);
   }
 
+  Future<void> startEarlyMedia(Map<String, dynamic> options,
+      {MediaStream? mediaStream = null}) async {
+    assert(_session != null, 'ERROR(startEarlyMedia): rtc session is invalid!');
+    Map<String, dynamic> earlyOptions = Map<String, dynamic>.from(options);
+    if (mediaStream != null) {
+      earlyOptions['mediaStream'] = mediaStream;
+    }
+    await _session.startEarlyMedia(earlyOptions);
+  }
+
   void refer(String target) {
     assert(_session != null, 'ERROR(refer): rtc session is invalid!');
     ReferSubscriber refer = _session.refer(target)!;

@@ -45,6 +45,22 @@ Run example:
 - [dart-sip-ua-example](https://github.com/flutter-webrtc/dart-sip-ua/blob/master/example/README.md)
 - or add your example.
 
+## Early Access To Media
+
+Incoming calls can now expose remote media before they are accepted. Call
+`startEarlyMedia` on the `Call` object to send a `183 Session Progress` with SDP
+and begin the WebRTC negotiation while staying in the *waiting for answer* state.
+
+```dart
+final options = helper.buildCallOptions(!call.remote_has_video);
+options['mediaConstraints'] = <String, dynamic>{'audio': false, 'video': false};
+options['status_code'] = 183;
+await call.startEarlyMedia(options);
+```
+
+You can observe the remote stream via the existing `CallStateEnum.STREAM` events
+and decide to accept or reject the call afterwards.
+
 Register with SIP server:
 
 - [Asterisk](https://github.com/flutter-webrtc/dockers/tree/main/asterisk)

@@ -70,7 +70,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Flutter Demo',
         theme: Provider.of<ThemeProvider>(context).currentTheme,
-        initialRoute: '/',
+        initialRoute: '/register',
         onGenerateRoute: _onGenerateRoute,
       ),
     );
